@@ -1,5 +1,8 @@
 # Basics on the esp32
 
+# Ressources
++ https://embeddedtutorials.com/ --> VERY good ressource for my purposes
+
 ## Operating system and development tools
 ### Documentation
 + You can find the esp32 documentation with a lot of code examples [here](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/index.html)
@@ -12,7 +15,10 @@
 + FreeRTOS is a C library --> You need to program in C if you want to have full control over the process management of the esp32 
 + The entrypoint of your application (from which you can start off other processes) is the `void app_main(){}` function
 + Since the esp uses a predefined freeRTOS, we can adjust it's configuration by using the `idf.py menuconfig`
-+ In contrast to vanilla freeRTOS, we do not need to call `void vTaskStartScheduler()` since this will be called implicitly by the idf freeRTOS at the end of the `void app_main()` function 
++ In contrast to vanilla freeRTOS, we do not need to call `void vTaskStartScheduler()` since this will be called implicitly by the idf freeRTOS at the end of the `void app_main()` function
+#### Tasks in FreeRTOS
++ If we create a task with `xTaskCreate`, it must not end with a `return` statement in the code. You must use the `vTaskDelete(NULL);` to delete a task
++ To hand over parameters to a task, we need to cast a struct into a void pointer and then `static_cast` it back in its native form as a pointer. See the `network_blinky_start_stop/main/network_blinky_start_stop.cpp` for an example 
 
 ### idf
 + Is maintained by espressive and can be used for all ESP boards (not only esp32 which is just one product of espressive)
