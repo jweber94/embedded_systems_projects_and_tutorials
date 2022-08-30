@@ -38,3 +38,24 @@
 + The ESP32 can be used as a IP client as well as a IP server. It has a library implementation to act as a WiFi router to which you can connect to. 
     - On connection you can setup a callback that is then invoked. 
     - For example: You can use this functionallity to serve a website that delivers WiFi credentials to the ESP. After receiving them, the esp stops publishing its SSID and registers it as a part of the network that is delivered by the configured router (aka SSID and password). After this has happened, the esp32 goes into its actual business logic
+
+## NVS (Non Volantile Storage)
++ Can be used to store persistend data on a partition on the esp32 at development/production time and is then persisted
+    - The data is persisted there, even if the device is currently not powered
++ Usually it saves a binary BLOB (Binary large object), which is just a chunk of data that needs to be interpreted correctly to extract meaningful information out of it
++ Commonly it is used to store serial numbers, manufacturer, ... of a device
++ The esp32 has a nvs API
+    - Which is also used to store wifi credentials persistendly
+
+## ESP32 Event Loop
++ The esp32 has a default event loop upon which you can build your own event definitions with their callback interfaces
+    - The idea behind this is to have an infinite loop running in the background and whenever an event is occuring, the callback that is associated with the event will be invoked.
+    - You can start off the default event loop by calling `esp_event_loop_create()` which contains the default wifi events with its callbacks
+    - Reference: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/esp_event.html?highlight=esp_event_loop#
+
+## ESP32 API basics
++ `ESP_ERROR_CHECK()`:
+    - Checks if a function that is called within delivers that esp_err_t code "ESP_OK" and if not it will print the call stack to the serial output and ends the program
+    - Implemented as a C makro
+    - If you want to *not* terminate your program after this, you need to use `ESP_ERROR_CHECK_WITHOUT_ABORT()`
+    - Reference: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/esp_err.html?highlight=esp_error_check#c.ESP_ERROR_CHECK
