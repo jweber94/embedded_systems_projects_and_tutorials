@@ -168,4 +168,21 @@
 + arm assembly only has rotation to the right
     - ***ROR*** - rotation to the right
 
+### Comparisons in arm assembly
++ Comparisons in arm assembly are the underlying principal of makeing `if`-statements in higher level languages!
++ In the background, there will be a `cmp` instruction, which subtracts the two given registers from each other!
+    - `cmp r0, r1` does in the background calculate `subs r2, r0, r1`!
+    - The meta-result (greater then, equals, less then, not equal then, ...) is stored in the cpsr register
++ We define what should be done by adding and defining labels for different outcomes of the `cmp` instruction!
+    - Common result triggers are:
+        * `bgt greater`, where `greater` is the label, defined further down
+        * `blt less`
+    - There is a `bal default`, which is the "be always executed" label, which will be invoked always after the cmp instruction (like the else case in higher level languages)
+    - If there is no definition which label should be invoked, the assembly code will go on as if there were no cmp operation (except of the calculation time that was needed to evaluate it)
++ ***CAUTION***: If we do not use the `bal` label, the machine will going on to the next instruction within the file. This will end up, executing the defined modules further down, even if the `cmp` instruction has said that they should not be executed
+    - This is the principal, how assembly code is executed!
+    - We can avoid this by using the bla condition
+    - ***CAUTION***: The `bla` label ***must*** always be at the end of the file to avoid executing anything that should not be executed
++ Keep in mind, that everything is invoked sequentially in assembly language! Even if a callback is invoked by the `cmp` operation, it will not go back to the place in the code where it left. It will continue executing the whole remaining program from the callback on!
+    - See `./src/comparison.s` for details (and the youtube video at 1:18:00)
 
