@@ -2,9 +2,7 @@
 
 ## Needed software
 + To cross-compile arm assembly on a x86 processor, we need/could use the gcc cross compiling build chain. Therefore, we need to install the following:
-    + `sudo apt install gcc-5-arm-linux-gnueabihf-base`
-    + You might need to add the following apt-remote to the `/etc/apt/sources.list`: 
-        - `deb http://us.archive.ubuntu.com/ubuntu/ precise universe`
+    + `sudo apt install gcc-10-arm-linux-gnueabi`
 + To test-run a cross compiled executable, we commonly use qemu (Linux CPU emulator). In order to install it, we need to run:
     + `sudo apt install qemu-user`
 

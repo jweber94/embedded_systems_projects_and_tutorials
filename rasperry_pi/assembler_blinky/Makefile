@@ -9,7 +9,7 @@ clean:
 build: clean
 	mkdir build
 	arm-linux-gnueabi-as ./src/hello_world.asm -o ./build/hello_world.o
-	arm-linux-gnueabi-gcc ./build/hello_world.o -o ./build/hello_world.elf -nostdlib
+	arm-linux-gnueabi-gcc-10 ./build/hello_world.o -o ./build/hello_world.elf -nostdlib
 
 run:
 	qemu-arm ./build/hello_world.elf
