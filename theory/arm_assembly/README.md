@@ -169,13 +169,15 @@
     - ***ROR*** - rotation to the right
 
 ### Comparisons in arm assembly
-+ Comparisons in arm assembly are the underlying principal of makeing `if`-statements in higher level languages!
++ Comparisons (also known as condition with a branch associated with it) in arm assembly are the underlying principal of makeing `if`-statements in higher level languages!
 + In the background, there will be a `cmp` instruction, which subtracts the two given registers from each other!
     - `cmp r0, r1` does in the background calculate `subs r2, r0, r1`!
     - The meta-result (greater then, equals, less then, not equal then, ...) is stored in the cpsr register
 + We define what should be done by adding and defining labels for different outcomes of the `cmp` instruction!
+    - The execution block is called a branch.
     - Common result triggers are:
         * `bgt greater`, where `greater` is the label, defined further down
+            - In this case, the `greater` label is the branch! 
         * `blt less`
     - There is a `bal default`, which is the "be always executed" label, which will be invoked always after the cmp instruction (like the else case in higher level languages)
     - If there is no definition which label should be invoked, the assembly code will go on as if there were no cmp operation (except of the calculation time that was needed to evaluate it)
@@ -186,3 +188,15 @@
 + Keep in mind, that everything is invoked sequentially in assembly language! Even if a callback is invoked by the `cmp` operation, it will not go back to the place in the code where it left. It will continue executing the whole remaining program from the callback on!
     - See `./src/comparison.s` for details (and the youtube video at 1:18:00)
 
+### Constants in arm assembly
++ Constants can be defined with the following syntax: 
+    * `.equ name #0x00`
+    
+### Looping in ARM assembly
++ Loops can be constructed, using the before discussed condition and branching (aka `cmp` and branch modules that are invoked by `bal`, `blt`, ...) functions of arm assembly in a clever way. 
++ Important: 
+    * *A loop is basically a logical condition with a _go to_ (aka branch) at the end that goes back to the start of the loop or that goes to the nexr line after the loop code*
+    * ***That means, every loop could be broken down as a condition and a branch in a sequential program!***
++ To stop a loop, most of the time, a termination character is used. For example in C there is the _null termination_ to indicate that an array is finished!
+    * The null termination is written as `0x00`
++ Example in `./src/loop.s`
