@@ -200,3 +200,36 @@
 + To stop a loop, most of the time, a termination character is used. For example in C there is the _null termination_ to indicate that an array is finished!
     * The null termination is written as `0x00`
 + Example in `./src/loop.s`
+
+### Conditional intructions
++ Are like if-else statements in arm assembly and syntactically like `cmp` with its associated program branches but in a more condensed form.
+    * The code will be more alltogether
++ We can extend arithmetic instructions with logical comparison instructions to make this happen.
+    * Example:
+        ```
+        cmp r0, r1
+        addlt r2, #2
+        ```
+    * Other examples are:
+        - `subgt`: subtract if cmp was *g*reater *t*hen
+        - `movge`: move registers if cmp was *g*reater or *e*qual
++ See `./src/conditional_instructions.s` for more details
+
+### Functions in arm assembly
++ We can use labels to define blocks of execution, but then we need to define the next label to go on or start the calling function over again to go back to the line in the code where we called the label.
+    - To avoid this, we can use `bl`, which stands for _branch linked_
++ `bl <label>`:
+    - This will cause the branch to execute and store the memory address of the ***next*** commmand of the calling text block/label in the `lr` register of the arm processor --> By this register, the processor knows where to go back after finishing the label/function
+    - In order to let this work properly, we need to use a `bx lr` (which stands for branch back to the address that is stored in `lr`) at the end of the program
+    - See `./src/functions_1.s` for a basic example. Tipp: try it out in the arm v7 emulator and take a careful look at the `lr` register!
+
+### Using the stack in functions
++ This is the underlying principal if you call a function from a higher level language when you call a function: We execute the function in its own function execution context!
+    - The parameters for a function are the registers that are set before calling the block of execution of the function block/label
+    - To restore the register states of the calling context, the register values are stored temporarily on the stack!
++ Using the stack is only necessary, if we use must use registers that are also used by the calling execution block
+    - e.g. if we need to do a syscall within the function or the amound of free registers are not enough
++ The stack is a FIFO queue from the point of view of the stack pointer (which is the pointer that points to the ***start infex*** of the stack)
++ Implementation is done by `push` and `pop` opcode!
+    - See `./src/function_with_stack.s`
+        * Be careful: if we do not do the `b end` (`b` for branch) to the end of the file, the function will get called again, since assembly is interpreted stricly sequentially, like it was said before
