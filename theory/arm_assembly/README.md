@@ -233,3 +233,136 @@
 + Implementation is done by `push` and `pop` opcode!
     - See `./src/function_with_stack.s`
         * Be careful: if we do not do the `b end` (`b` for branch) to the end of the file, the function will get called again, since assembly is interpreted stricly sequentially, like it was said before
+
+### Loading big numbers to registers could cause problems - workaround
++ ***CAUTION***: In arm v7, we can not directly write an immediate (aka a number) that is greater then 255 (=8 bits) to a register. This is caused by historical reasons.
+    - What you can do instead is to declare a constant and then load the value of the address where the constant is stored to the targeted register.
+    - Example:
+    ```
+    .equ large_num, #257
+    ldr r0, =large_num
+    ```
+    , whereas 
+    ```
+    mov r0, #257
+    ```
+    does not work.
+    - If we use a value that is greater then 256 within a `mov` instruction, the compiler will moan!
+
+### Interaction with hardware
++ In the [arm emulator](https://cpulator.01xz.net/?sys=arm-de1soc) are hardware examples there to test.
+    - For example, we can interact with the LEDs and the switches on the right side besides the code
++ To interact with the hardware, we need to read out or write to the memory addresses of the hardware on the processor. 
+    - Since the hardware addresses are commonly pretty large (and always bigger then 257 in HEX), we first need to load the address to a register and then retrive the value behind the address from the loaded memory address.
++ Example for doing this by reading the state of a switch, see: `./src/hardware_interaction_read.s`
++ ***Switches*** in depth:
+    - Basically, how a hardware signal needs to be interpreted as numbers in its register is documented on the processors manual.
+    - In case of switches, the logic is the following:
+        * The switch information address is `0xff000040`
+        * The default endianness of arm v7 is little endian. Every switch is associated with one bit, starting with switch 0 as the least significant bit.
+        * Depending on the pattern of the on and off taken switches, we will receive a number from the register which corresponds to the binary pattern interpreted by the endianness of the processor.
+        * Example: 
+            + Switches on: 0, 2
+            + Binary pattern (little endian): 10100000 00000000 00000000 00000000
++ Writing to a hardware memory address at the example of the LEDs
+    + Writing to the memory address functions quiet like reading from the switches: We need to write the binary pattern in a little endian manner the the hardware associated memory address
+    + See `./src/hardware_interaction_read_write.s` for an example
+
+### Datatypes in arm assembly
++ Besides the common `.word` datatype, which is used to store data in 32 bit (depends on the system) HEX values, there are two other datatypes, namely:
+    * `.ascii`: To store plain text - not null terminated ~ this can cause iteration errors, etc on many systems. You can use this for some special cases or if you have to save just a single character
+    * `.asciz`: Null terminalted plain text (there is an alias in arm assembly for asciz that is called `.string`)
+
+## Arm cross compiling and development
++ Arm emulation under linux:
+    - Emulation is used to:
+        * Not need to use the device directly (and break it on purpose)
+        * Can be automated with a CI pipeline
++ As an example: ***Emulation of raspbian - rasperry pi arm linux OS***
+    - Steps:
+        * Download the `.img` image: you can download the `.zip` and extract it from [here](https://downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2017-04-10/) 
+        * Download a kernel [here](https://github.com/dhruvvyas90/qemu-rpi-kernel/blob/master/kernel-qemu-4.4.34-jessie) 
+        * Use `qemu-system` to simulate a complete operating system (instead of qemu-user which simulates the processor for the executable)
+            * You can define, what hardware should be used to emulate a system. This will be defined by the command line argument. The main arguments to set system configurations for the emulation are:
+                - `-cpu arm1176`: What CPU should be emulated
+                - `-m`: The amound of ram that should be virtually available to the emulated system
+                - `-M versatilepb`: Emulated machine type
+                - `-serial stdio`: We want to work with the standard input output with our system
+                - `--append "root=/dev/sda2 rootfstype=ext4 rw"`: Setup the filesystem that should be used by the emulated system (ext, btr, squashfs, ...)
+            * Besides this, we can set the kernel as well as an image of the operating system (`.img` file, that contains everything about the operating system besides the kernel)
+                - `-kernel /path/to/kernel/binary` to set the kernel
+                - `-hda /path/to/os/image.img`: hda is an option to setup the hard drive as a(n image-) file
+            * Furthermore, we can forward ports from our emulated machine to our host machine, using the `-nic` command
+                * This is useful, because sometimes the UI of qemu-system is not well forwarded, so we mostly interact with the emulated machine via ssh, telnet or something like this!
+                * Forwarding the ssh-port (port 22): `-nic user,hostfwd=tcp::5022-:22`
+        + Start the system emulation environment with:
+            - `qemu-system-arm -kernel ~/path/to/downloaded/kernel/kernel-qemu-4.4.34-jessie -cpu arm1176 -m 256 -M versatilepb -serial stdio -append "root=/dev/sda2 rootfstype=ext4 rw" -hda ~/path/to/unzipped/files/2017-04-10-raspbian-jessie-lite.img -nic user,hostfwd=tcp::5022-:22 -no-reboot`
+            - When the emulated system has started, we can login and enable ssh by opening up a terminal and then start the ssh systemd service by typing `sudo systemctl start ssh.service`
+            - After this is done, we can login to the emulated machine via ssh with the command on the host: `ssh -Y pi@127.0.0.1 -p 5022`
+        + The most internet connections will be forwareded by the qemu emulator to the host as a gateway
++ Important hints: 
+    - ***If you develop your own linux distributions for a targeted device, you can test your linux images and kernels in a qemu environment beforehand to avoid damaging the physical system/chip!***
+        * This can be done, see: https://unix.stackexchange.com/questions/632031/forward-network-packets-from-host-machine-to-qemu-image 
+### Systemcalls in arm assembly
++ Systemcalls:
+    * A syscall is a request to the linux kernel to do something, that we could not do in user mode
+    * Systemcalls enable a standardized interface to kernel functionallities.
+        - The main special thing about the kernel is, that it has read and *write* permissions to _ALL_ memoryaddresses! --> You can damage your system very badly, if you accidently overwrite an important memory address on your system. To avoid doing this, we are program applications in a lesser privileged "user-mode". Syscalls are an interface to have a defined behaviour while reading or writing those critical memory locations
++ How systemcalls can be invoked on a register level can be looked up in [this](https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md#arm-32_bit_EABI) table!
+    - The nice thing about developing with linux is thhat the kernel abi does not change very often!
++ Write systemcall in arm assembly:
+    - We need to write the targeted data and the file descriptor where we want to write to into the registers that can be looked up in the aforementioned table
+    - After doing this, we need to call the software interrupt 0 (`swi 0`) to tell the processor that we want to invoke a systemcall with the currently set registers
+        * _This will cause a function invokation (like we already discussed in the "functions" section before) by jumping to a predefined memory address, where the systemcalls are stored and choosen!_
+        * You can imagine that the software interrupt is the call to the operating system to take over the processing
++ Specials about linux arm systemcalls:
+    - The register `r7` has the role of defining what systemcall should be invoked!
+        * The first thing that will happen after the `swi 0` was called is that the OS checks what number is stored at `r7`
++ After a syscall is finished, the program executes further after the `swi` instruction
++ See `./src/hello_world_real_arm.s` for an example of the systemcall `write`!
++ ***Further reading:***
+    - File descriptors:
+        * A file descriptor is a unique integer that is defined _for a process_ on the linux OS (Every process has its own file descriptor table associated with it!). With it, we can identify the file. It works as a handle to the corresponding file!
+        * Since "everything is a file in linux", we can address the stdin, stdout and stderr with the default file descriptors 0 (in), 1 (out) and 2 (err).
+
+### Terminate a real arm assembly program with the `exit` system call
++ Since a user space program has no permissions to end processes, we need to do this via the `exit` system call!
++ In order to do this, we need to:
+```
+mov r7, #1
+swi 0
+```
+  to call the process termination system call.
++ If you do not end your program in this way, the execution stops with a segfault after the last valid instruction was executed by the CPU
+
+## Compilation on the target system (or within the emulated target system via qemu-system) - NO crosscompiler
++ To create the binary file from the assembly file, we use the linux terminal program `$ as` (GNU assembler)
+    - Syntax: `$ as hello_world.s -o hello_world.o`
+    - This will generate the binary file, called "object file" or "object code"!
+    - This object file is ***not*** runnable!
++ After we generated the object code, we need to link the systems dynamically and statically standard libraries by using `ld` (GNU linker)
+    - Syntax: `$ ld hello_world.o -o hello_world`
+    - This will create the executable binary, named hello_world
+
+## Debugging arm assembly on the linux host (or linux host emulation)
+### GDB: GNU debugger
++ To run a program with gdb and stop at a breakpoint, we need to start the program with a `$ gdb hello_world` in front of it
+    - This will open up gdb, but will ***not*** run the program!
+    - To run the program, you need to type `run` into the gdb console!
++ You might want to stop the program at the entrypoint. Therefore, you need to set a breakpoint on the address, where the `_start` label is defined.
+    - This can be done by: `$ break _start`
+    - After this, we can run the program by typing `run` to the gdb console
+        * The program will halt at the instruction address, where the label `_start` is defined
++ To look at the instructions of the compiled code (with the real addresses of the program), we can type `(gdb) layout asm`
++ To look at the registers and their current values, we can either use another layout, or we can request the register info via the gdb terminal interface:
+    - Terminal interface: `(gdb) info register r0` or `(gdb) info register` to show all registers
+    - Layout: `(gdb) layout regs`
++ Navigating the layouts:
+    - `ctrl` + `x` and then `o` (like tmux `ctrl` + `b` and then ...)
+    - You can scroll the layouts by using the arrow keys
++ Step to next instruction: `(gdb) stepi`
++ Inspect memory addresses (addresses, not registers!): 
+    - `(gdb) x/10x $r1`: Show in HEX
+    - `(gdb) x/10d $r1`: Show in decimal
+    - `(gdb) x/10c $r1`: Show in char/string
+    - Here is $r1 the resolved value of the register `r1`, interpreted as an address (idealy, there is an address stored within)
