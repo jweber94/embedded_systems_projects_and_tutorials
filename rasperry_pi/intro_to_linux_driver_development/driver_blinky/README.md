@@ -78,6 +78,18 @@
 + ***We choose a file within the `/proc` filesystem, if we want to access system information or request functionallities that are done by the chip/processor itself!***
 + There is a defined interface for the `/proc` filesystem that we can lookup with `linux/proc_fs.h` under the name `proc_ops`, see [10].
 
+#### Interacting with the user by copying data between user space and kernel space
++ To read and write data from and to the kernel space, we need to invoke the kernel functions `copy_to_user()` and `copy_from_user()`, which are defined in [11] and [12]
+  * Make sure that you allocate a static data buffer that you reset every time we invoke `copy_from_user` by zeroing it out (e.g. with memset [13])
+  * Make sure to sanity check user input to fit into the data buffer!
++ After we have implemented the read and write functions accoring to the function signature that is given by `proc_ops`, we need to link them to the instance of the `proc_ops` struct!
+  * Make sure that you have proper forward declaration!
++ After the `proc_ops` instance is created, we need to link it to a file within the `/proc` folder. Therefore, we need to create one!
+  * This can be done by `proc_create()` function [14] within the `__init` function of the kernel module!
++ The resulting pointer from `proc_create()` needs to be assigned to the static `proc_dir_entry` struct [15] of the kernel module!
+  * With this handle, we are able to delete the file within the `/proc` directory if the `__exit` function of the kernel module is called
++ ***See `./proc_fs/my_gpio_driver.c` for more implementation details!***
+
 
 ## References
 + [1] Video 1: https://www.youtube.com/watch?v=lWzFFusYg6g&t=289s
@@ -90,3 +102,8 @@
 + [8] https://stackoverflow.com/questions/49350553/can-i-call-mknod-from-my-kernel-module
 + [9] https://www.youtube.com/watch?v=h7ybJMYyqDQ
 + [10] https://elixir.bootlin.com/linux/latest/source/include/linux/proc_fs.h
++ [11] https://www.ibm.com/docs/en/i/7.1?topic=functions-memset-set-bytes-valuehttps://www.cs.bham.ac.uk/~exr/lectures/opsys/13_14/docs/kernelAPI/r4037.html
++ [12] https://www.kernel.org/doc/htmldocs/kernel-api/API---copy-to-user.html
++ [13] https://www.ibm.com/docs/en/i/7.1?topic=functions-memset-set-bytes-value
++ [14] https://elixir.bootlin.com/linux/latest/source/fs/proc/generic.c#L582
++ [15] https://elixir.bootlin.com/linux/latest/source/fs/proc/internal.h#L30
