@@ -50,11 +50,43 @@
 + ***REMARK***: It is best practice to leave a comment why a kernel module is blacklisted in the line before the acutal blacklisting
 + To get info about a kernel module (author, version, ... everything that is written to the meta data), you can use `$ modinfo <drivername>` or `$ modinfo /path/to/driver.ko`
 
-## References
-+ Video 1: https://www.youtube.com/watch?v=lWzFFusYg6g&t=289s
-+ Video 2: https://www.youtube.com/watch?v=LKHNHvDedf0
-+ Video 3: https://www.youtube.com/watch?v=wB5ionPAFnk6L4&t=4s
-+ https://www.tecmint.com/install-kernel-headers-in-ubuntu-and-debian/ (install linux kernel headers on a non-rasperry-pi system)
-+ https://stackoverflow.com/questions/8832114/what-does-init-mean-in-the-linux-kernel-code
-+ https://www.cyberciti.biz/faq/linux-how-to-load-a-kernel-module-automatically-at-boot-time/ (Loading kernel modules on default)
+## Create a device file driver
+### What is a device file driver?
++ There are three kinds of linux drivers that you can create:
+  - char modules: Char drivers are file drivers, which is the most common way to implement a hardware driver!
+  - block modules: Different kind of driver
+  - network modules: Different kind of driver
++ The most popular kind of driver is the file driver:
+  - Since the linux philosophy says "everything is a file", we can interact with the kernel functionality by reading and writing to that driver file.
+  - Be careful: Driver files are not _real_ files! Reading and writing to that file will ***NOT*** result in a persistend entry within that _file_! It will be the input/output to the callback function that is linked by an systemcall that is invoked by the user (space program)!
 
+### Creating a file for the interaction
++ The file for the interaction between the user space and the kernel module can be created in different ways and is (in parts) dependend on which interface should be used!
++ There are two main interfaces:
+  * A file in the `/proc` filesystem
+  * A device file in the `/dev` filesystem
+#### Creating files within the `/dev` filesystem
++ There are two ways to create an interaction file within the `/dev` filesystem:
+  * Using the terminal: 
+    - We can create a file for the interaction by using the `$ mknode` command
+    - Alternatively, we can create the file within the `__init` function of the kernel module. For details, see [8].
+  * If we use a file within the `/dev` directory, we need to assign it a major and minor device file number. See [9] for details.
+  * Tipp: If we create a device file within `/dev`, we could make a GPIO listen if there is a _high_ level on the pin and if that is the case, we create the device file
++ ***We use the `/dev` char driver, if we want to connect to a real, physical device***
+
+#### Creating files within the `/proc` filesystem
++ ***We choose a file within the `/proc` filesystem, if we want to access system information or request functionallities that are done by the chip/processor itself!***
++ There is a defined interface for the `/proc` filesystem that we can lookup with `linux/proc_fs.h` under the name `proc_ops`, see [10].
+
+
+## References
++ [1] Video 1: https://www.youtube.com/watch?v=lWzFFusYg6g&t=289s
++ [2] Video 2: https://www.youtube.com/watch?v=LKHNHvDedf0
++ [3] Video 3: https://www.youtube.com/watch?v=wB5ionPAFnk6L4&t=4s
++ [4] https://www.youtube.com/watch?v=juGNPLdjLH4
++ [5] https://www.tecmint.com/install-kernel-headers-in-ubuntu-and-debian/ (install linux kernel headers on a non-rasperry-pi system)
++ [6] https://stackoverflow.com/questions/8832114/what-does-init-mean-in-the-linux-kernel-code
++ [7] https://www.cyberciti.biz/faq/linux-how-to-load-a-kernel-module-automatically-at-boot-time/ (Loading kernel modules on default)
++ [8] https://stackoverflow.com/questions/49350553/can-i-call-mknod-from-my-kernel-module
++ [9] https://www.youtube.com/watch?v=h7ybJMYyqDQ
++ [10] https://elixir.bootlin.com/linux/latest/source/include/linux/proc_fs.h
