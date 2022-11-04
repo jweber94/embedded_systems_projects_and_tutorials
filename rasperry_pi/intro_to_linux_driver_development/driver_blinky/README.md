@@ -91,6 +91,15 @@
 + ***See `./proc_fs/my_gpio_driver.c` for more implementation details!***
 
 
+#### Creating the real driver for the GPIO interface
++ See `./final_gpio_driver/my_gpio_driver.c` for more details
++ The main takeaways are:
+  - Look at the kernel header documentation and the given function signatures to hand back the demanded values that needs to be calculated by your driver logic! (E.g. the read and write callback for the `proc_ops` object need to ssize_t the amount of bytes that were written or read out by the request from the user space.)
+  - Fancy bit banging and binary masking is a good way to setup register values
+  - Define a valid interface and check it within your driver code such that the user space request could not be processed if it is not well formated
+  - Physical adresses needs to be remaped to kernel space, because linux uses a MMU, see [16],[17] for details
+    * This will get you back the virtual adress that the MMU has mapped to the physical adress  
+
 ## References
 + [1] Video 1: https://www.youtube.com/watch?v=lWzFFusYg6g&t=289s
 + [2] Video 2: https://www.youtube.com/watch?v=LKHNHvDedf0
@@ -107,3 +116,5 @@
 + [13] https://www.ibm.com/docs/en/i/7.1?topic=functions-memset-set-bytes-value
 + [14] https://elixir.bootlin.com/linux/latest/source/fs/proc/generic.c#L582
 + [15] https://elixir.bootlin.com/linux/latest/source/fs/proc/internal.h#L30
++ [16] https://os.inf.tu-dresden.de/l4env/doc/html/dde_linux/group__mod__res.html#gd8fce5b58ae2fa9f4158fe408610ccc5
++ [17] https://www.thegeekdiary.com/what-is-ioremap/
