@@ -20,7 +20,7 @@ static void gpio_pin_on(unsigned int pin) {
   /* Getting the demanded bits of the GPIO registers */
   unsigned int gpfsel_index_n = pin/10;
   unsigned int fsel_bit_pos = pin%10;
-  unsigned int * gpfsel_n = gpio_registers + gpfsel_index_n; // Get the correct GPFSEL register
+  unsigned int * gpfsel_n = gpio_registers_addr + gpfsel_index_n; // Get the correct GPFSEL register
   
   unsigned int * gpset_register = (unsigned int *)((char *) gpio_registers_addr + 0x1c); // the gpset_n register has the offset 0x1c from the gpfsel registers
 
@@ -40,12 +40,12 @@ static void gpio_pin_off(unsigned int pin){
   return;
 }
 
-ssize_t proc_read_cb(struct file * file, const char __user *user, size_t size, loff_t off){
+ssize_t proc_read_cb(struct file *file, char __user *user, size_t size, loff_t *off){
   // read syscall callback - This is a demanded function signature by struct proc_ops - it needs to return how many bytes are written to the user
   return copy_to_user(user, "Hello!\n", 7) ? 0 : 7;
 }
 
-ssize_t proc_write_cb(struct file* file, const char __user *user, size_t size, loff_t *off) {
+ssize_t proc_write_cb(struct file *file, const char __user *user, size_t size, loff_t *off) {
   // write syscall callback - This is a demanded function signature by struct proc_ops - it needs to return how many bytes are written to the user
   unsigned int pin = UINT_MAX;
   unsigned int value = UINT_MAX;
@@ -66,7 +66,7 @@ ssize_t proc_write_cb(struct file* file, const char __user *user, size_t size, l
   printk("Databuffer: %s\n", data_buffer);
 
   // Check if we received a valid data format from the user input - scanf takes data and reformats it - on sucess, it will return the number of items that were sucessfully read (https://www.tutorialspoint.com/c_standard_library/c_function_scanf.htm)
-  if (scanf(data_buffer, "%d%d", &pin, &value) != 2) {
+  if (sscanf(data_buffer, "%d%d", &pin, &value) != 2) {
     printk("Inproper data format submitted!\n");
     return size;
   }
@@ -123,7 +123,7 @@ static int __init gpio_driver_init(void) {
 // __exit is another makro that is defined within linux/init.h
 static void __exit gpio_driver_exit(void) {
   printk("Remove the gpio driver...");
-  iounmap(gpio_registers);
+  iounmap(gpio_registers_addr);
   proc_remove(proc_dir_handle);
   printk("GPIO driver unloaded sucessfully\n");
   return;
